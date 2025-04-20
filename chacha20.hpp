@@ -13,14 +13,13 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include <algorithm>
 #include <cmath>
 
-// Built following documentation: https://datatracker.ietf.org/doc/html/rfc8439
 class Chacha20 {
 
     // Number of double rounds to perform
     const unsigned int ROUNDS = 10;
 
     // Internal state is made of 16 32-bit words
-    // They are arranged as a 4x4 matrix as follows
+    // They are arranges as a 4x4 matrix as follows
     // 0 1 2 3
     // 4 5 6 7
     // 8 9 A B
@@ -50,7 +49,7 @@ class Chacha20 {
     @returns shifted value
     ------------------------------------------------*/
     std::uint32_t rotl(std::uint32_t x, std::uint32_t s) {
-        return (x << s) | (x >> (sizeof(x)*8-s));
+        return (x << s) | (x >> (32-s));
     }
 
     /*------------------------------------------------
@@ -209,7 +208,6 @@ public:
         this->block_count = block_count;
         this->nonce = nonce;
 
-        // initialize state
         init();
     }
 
@@ -228,35 +226,23 @@ public:
     ------------------------------------------------*/
     std::string encrypt(std::string message) {
         std::string encrypted;
-        for(int i = 0; i < std::floor(message.length()/64); i++) {
-            std::vector<std::uint32_t> stream = chacha20_block(block_count+i);
-            // XOR stream with appropiate block of message
-            for(int j = i*64, t = 0; j < i*64+64; t++) {
-                // stream must be little-endian when XORing
-                std::uint32_t little = little_endian(stream[t]);
-                encrypted += message[j++] ^ (little>>24);
-                encrypted += message[j++] ^ (little>>16);
-                encrypted += message[j++] ^ (little>>8);
-                encrypted += message[j++] ^ (little);
+        std::vector<std::uint32_t> stream;
+        for(int i = 0, t = 0; i < message.length(); t++) {
+            if(i%64 == 0) {
+                stream = chacha20_block(block_count+i/64);
+                t = 0;
             }
-        } 
+            // XOR stream with appropiate block of message
+            // stream must be little-endian when XORing
+            std::uint32_t little = little_endian(stream[t]);
 
-        // Handle the remaning not full block if exists
-        if(message.length() % 64 != 0) {
-            int i = std::floor(message.length()/64);
-            std::vector<std::uint32_t> stream = chacha20_block(block_count+i);
-            // XOR stream with appropiate block of message
-            for(int j = i*64, t = 0; j < message.length(); t++) {
-                // stream must be little-endian when XORing
-                std::uint32_t little = little_endian(stream[t]);
-                encrypted += message[j++] ^ (little>>24);
-                if(j == message.length()) continue;
-                encrypted += message[j++] ^ (little>>16);
-                if(j == message.length()) continue;
-                encrypted += message[j++] ^ (little>>8);
-                if(j == message.length()) continue;
-                encrypted += message[j++] ^ (little);
-            }
+            encrypted += message[i++] ^ (little>>24);
+            if(i == message.length()) return encrypted;
+            encrypted += message[i++] ^ (little>>16);
+            if(i == message.length()) return encrypted;
+            encrypted += message[i++] ^ (little>>8);
+            if(i == message.length()) return encrypted;
+            encrypted += message[i++] ^ (little);
         }
 
         return encrypted;
