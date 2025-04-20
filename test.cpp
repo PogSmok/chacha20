@@ -49,7 +49,9 @@ int main(void) {
 
     std::string encode = cipher.encrypt(msg);
     std::string decode = cipher.encrypt(encode);
+    // Verify the testcase
     assert(encode == encoded_assertion);
+    // Cipher is symmetrical, thus double encoding will result in the initial string
     assert(decode == msg);
 
     return 0;
