@@ -6,6 +6,8 @@
 
 int main(void) {
     // This testcase has been created by https://datatracker.ietf.org/doc/html/rfc843
+
+    // key = 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12:13:14:15:16:17:18:19:1a:1b:1c:1d:1e:1f
     std::vector<std::uint32_t> key = {
         0x00010203,
         0x04050607,
@@ -17,15 +19,16 @@ int main(void) {
         0x1c1d1e1f
     };
 
+    // block count = 1
     std::uint32_t block_count = 1;
 
+    // nonce = 00:00:00:00:00:00:00:4a:00:00:00:00
     std::vector<std::uint32_t> nonce = {
         0x00000000,
         0x0000004a,
         0x00000000
     };
 
-    Chacha20 cipher = Chacha20(key, block_count, nonce);
     std::string msg = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.";
     unsigned char data[] = {
         0x6e, 0x2e, 0x35, 0x9a, 0x25, 0x68, 0xf9, 0x80,
@@ -46,7 +49,8 @@ int main(void) {
     };
     std::string encoded_assertion(reinterpret_cast<const char*>(data), sizeof(data));
 
-
+    // create Chacha20 object
+    Chacha20 cipher = Chacha20(key, block_count, nonce);
     std::string encode = cipher.encrypt(msg);
     std::string decode = cipher.encrypt(encode);
     // Verify the testcase
