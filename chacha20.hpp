@@ -233,16 +233,13 @@ public:
                 t = 0;
             }
             // XOR stream with appropiate block of message
-            // stream must be little-endian when XORing
-            std::uint32_t little = little_endian(stream[t]);
-
-            encrypted += message[i++] ^ (little>>24);
+            encrypted += message[i++] ^ (stream[t]);
             if(i == message.length()) return encrypted;
-            encrypted += message[i++] ^ (little>>16);
+            encrypted += message[i++] ^ (stream[t]>>8);
             if(i == message.length()) return encrypted;
-            encrypted += message[i++] ^ (little>>8);
+            encrypted += message[i++] ^ (stream[t]>>16);
             if(i == message.length()) return encrypted;
-            encrypted += message[i++] ^ (little);
+            encrypted += message[i++] ^ (stream[t]>>24);
         }
 
         return encrypted;
