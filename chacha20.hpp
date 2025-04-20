@@ -8,10 +8,9 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #define __CHACHA20__
 
 #include <cstdint>
-#include <vector>
-#include <stdexcept>
-#include <algorithm>
 #include <cmath>
+#include <stdexcept>
+#include <vector>
 
 class Chacha20 {
 
