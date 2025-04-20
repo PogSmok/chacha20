@@ -20,7 +20,7 @@ class Chacha20 {
     const unsigned int ROUNDS = 10;
 
     // Internal state is made of 16 32-bit words
-    // They are arranges as a 4x4 matrix as follows
+    // They are arranged as a 4x4 matrix as follows
     // 0 1 2 3
     // 4 5 6 7
     // 8 9 A B
