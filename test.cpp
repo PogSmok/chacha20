@@ -17,7 +17,7 @@ int main(void) {
         0x1c1d1e1f
     };
 
-    std::uint32_t counter = 1;
+    std::uint32_t block_count = 1;
 
     std::vector<std::uint32_t> nonce = {
         0x00000000,
@@ -25,8 +25,7 @@ int main(void) {
         0x00000000
     };
 
-    Chacha20 cipher = Chacha20(key, counter, nonce);
-    cipher.init();
+    Chacha20 cipher = Chacha20(key, block_count, nonce);
     std::string msg = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.";
     unsigned char data[] = {
         0x6e, 0x2e, 0x35, 0x9a, 0x25, 0x68, 0xf9, 0x80,
