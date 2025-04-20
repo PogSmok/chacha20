@@ -1,62 +1,83 @@
 #include "chacha20.hpp"
 
-#include <vector>
-#include <cstdint>
 #include <cassert>
+#include <cstdint>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+
+/// It is assumed all test cases are valid and thus no safety checks are implemented for the contents of tests themselves
+
+// Converts string into acceptable vector form
+std::vector<std::uint32_t> hex_str_to_vec(std::string str) {
+    std::vector<std::uint32_t> ret;
+    for(size_t i = 0; i < str.length(); i+=8) {
+        std::string sub = str.substr(i, 8);
+        ret.push_back(std::stoul(sub, nullptr, 16));
+    } 
+    return ret;
+}
+
+// Converts string with block_count value into an accepted format
+std::uint32_t str_to_block(std::string block_count) {
+    return std::stoul(block_count);
+}
+
+// Converts string with bytes of a string to string made from those bytes
+std::string hex_str_to_str(std::string str) {
+    std::string ret;
+    for(size_t i = 0; i < str.length(); i+=2) {
+        std::string sub = str.substr(i, 2);
+        ret += std::stoul(sub, nullptr, 16);
+    } 
+    return ret;
+}
+
+// Converts string into a string of bytes it composes of in hexadecimal
+std::string str_to_result(std::string str) {
+    std::ostringstream oss;
+    // Set the output to hex, with two digits per byte
+    oss << std::hex << std::setfill('0');
+    for (unsigned char c : str) oss << std::setw(2) << static_cast<int>(c);
+    return oss.str();
+}
+
+void test_case(std::string key, std::string block_count, std::string nonce, std::string message, std::string result) {
+    Chacha20 cipher = Chacha20(hex_str_to_vec(key), str_to_block(block_count), hex_str_to_vec(nonce));
+    std::string coded = cipher.encrypt(hex_str_to_str(message));
+    coded = str_to_result(coded);
+    assert(coded == result);
+}
 
 int main(void) {
-    // This testcase has been created by https://datatracker.ietf.org/doc/html/rfc843
+    // Testcase have been created by https://datatracker.ietf.org/doc/html/rfc843   
 
-    // key = 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12:13:14:15:16:17:18:19:1a:1b:1c:1d:1e:1f
-    std::vector<std::uint32_t> key = {
-        0x00010203,
-        0x04050607,
-        0x08090a0b,
-        0x0c0d0e0f,
-        0x10111213,
-        0x14151617,
-        0x18191a1b,
-        0x1c1d1e1f
-    };
+    // Test Vector #0
+    test_case("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", "1", "000000000000004a00000000",
+        "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e",
+        "6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0bf91b65c5524733ab8f593dabcd62b3571639d624e65152ab8f530c359f0861d807ca0dbf500d6a6156a38e088a22b65e52bc514d16ccf806818ce91ab77937365af90bbf74a35be6b40b8eedf2785e42874d"
+    );
 
-    // block count = 1
-    std::uint32_t block_count = 1;
+    // Test Vector #1
+    test_case("0000000000000000000000000000000000000000000000000000000000000000", "0", "000000000000000000000000",
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "76b8e0ada0f13d90405d6ae55386bd28bdd219b8a08ded1aa836efcc8b770dc7da41597c5157488d7724e03fb8d84a376a43b8f41518a11cc387b669b2ee6586"
+    );
 
-    // nonce = 00:00:00:00:00:00:00:4a:00:00:00:00
-    std::vector<std::uint32_t> nonce = {
-        0x00000000,
-        0x0000004a,
-        0x00000000
-    };
+    // Test Vector #2
+    test_case("0000000000000000000000000000000000000000000000000000000000000001", "1", "000000000000000000000002",
+    "416e79207375626d697373696f6e20746f20746865204945544620696e74656e6465642062792074686520436f6e7472696275746f7220666f72207075626c69636174696f6e20617320616c6c206f722070617274206f6620616e204945544620496e7465726e65742d4472616674206f722052464320616e6420616e792073746174656d656e74206d6164652077697468696e2074686520636f6e74657874206f6620616e204945544620616374697669747920697320636f6e7369646572656420616e20224945544620436f6e747269627574696f6e222e20537563682073746174656d656e747320696e636c756465206f72616c2073746174656d656e747320696e20494554462073657373696f6e732c2061732077656c6c206173207772697474656e20616e6420656c656374726f6e696320636f6d6d756e69636174696f6e73206d61646520617420616e792074696d65206f7220706c6163652c207768696368206172652061646472657373656420746f",
+    "a3fbf07df3fa2fde4f376ca23e82737041605d9f4f4f57bd8cff2c1d4b7955ec2a97948bd3722915c8f3d337f7d370050e9e96d647b7c39f56e031ca5eb6250d4042e02785ececfa4b4bb5e8ead0440e20b6e8db09d881a7c6132f420e52795042bdfa7773d8a9051447b3291ce1411c680465552aa6c405b7764d5e87bea85ad00f8449ed8f72d0d662ab052691ca66424bc86d2df80ea41f43abf937d3259dc4b2d0dfb48a6c9139ddd7f76966e928e635553ba76c5c879d7b35d49eb2e62b0871cdac638939e25e8a1e0ef9d5280fa8ca328b351c3c765989cbcf3daa8b6ccc3aaf9f3979c92b3720fc88dc95ed84a1be059c6499b9fda236e7e818b04b0bc39c1e876b193bfe5569753f88128cc08aaa9b63d1a16f80ef2554d7189c411f5869ca52c5b83fa36ff216b9c1d30062bebcfd2dc5bce0911934fda79a86f6e698ced759c3ff9b6477338f3da4f9cd8514ea9982ccafb341b2384dd902f3d1ab7ac61dd29c6f21ba5b862f3730e37cfdc4fd806c22f221"  
+    );
 
-    std::string msg = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.";
-    unsigned char data[] = {
-        0x6e, 0x2e, 0x35, 0x9a, 0x25, 0x68, 0xf9, 0x80,
-        0x41, 0xba, 0x07, 0x28, 0xdd, 0x0d, 0x69, 0x81,
-        0xe9, 0x7e, 0x7a, 0xec, 0x1d, 0x43, 0x60, 0xc2,
-        0x0a, 0x27, 0xaf, 0xcc, 0xfd, 0x9f, 0xae, 0x0b,
-        0xf9, 0x1b, 0x65, 0xc5, 0x52, 0x47, 0x33, 0xab,
-        0x8f, 0x59, 0x3d, 0xab, 0xcd, 0x62, 0xb3, 0x57,
-        0x16, 0x39, 0xd6, 0x24, 0xe6, 0x51, 0x52, 0xab,
-        0x8f, 0x53, 0x0c, 0x35, 0x9f, 0x08, 0x61, 0xd8,
-        0x07, 0xca, 0x0d, 0xbf, 0x50, 0x0d, 0x6a, 0x61,
-        0x56, 0xa3, 0x8e, 0x08, 0x8a, 0x22, 0xb6, 0x5e,
-        0x52, 0xbc, 0x51, 0x4d, 0x16, 0xcc, 0xf8, 0x06,
-        0x81, 0x8c, 0xe9, 0x1a, 0xb7, 0x79, 0x37, 0x36,
-        0x5a, 0xf9, 0x0b, 0xbf, 0x74, 0xa3, 0x5b, 0xe6,
-        0xb4, 0x0b, 0x8e, 0xed, 0xf2, 0x78, 0x5e, 0x42,
-        0x87, 0x4d,
-    };
-    std::string encoded_assertion(reinterpret_cast<const char*>(data), sizeof(data));
+    // Test Vector #3
+    test_case("1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0", "42", "000000000000000000000002",
+        "2754776173206272696c6c69672c20616e642074686520736c6974687920746f7665730a446964206779726520616e642067696d626c6520696e2074686520776162653a0a416c6c206d696d737920776572652074686520626f726f676f7665732c0a416e6420746865206d6f6d65207261746873206f757467726162652e",
+        "62e6347f95ed87a45ffae7426f27a1df5fb69110044c0d73118effa95b01e5cf166d3df2d721caf9b21e5fb14c616871fd84c54f9d65b283196c7fe4f60553ebf39c6402c42234e32a356b3e764312a61a5532055716ead6962568f87d3f3f7704c6a8d1bcd1bf4d50d6154b6da731b187b58dfd728afa36757a797ac188d1"
+    );
 
-    // create Chacha20 object
-    Chacha20 cipher = Chacha20(key, block_count, nonce);
-    std::string encode = cipher.encrypt(msg);
-    std::string decode = cipher.encrypt(encode);
-    // Verify the testcase
-    assert(encode == encoded_assertion);
-    // Cipher is symmetrical, thus double encoding will result in the initial string
-    assert(decode == msg);
-
+    std::cout<<"Testcases passed successfully\n";
     return 0;
 }
