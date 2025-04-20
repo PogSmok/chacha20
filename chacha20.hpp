@@ -13,6 +13,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include <algorithm>
 #include <cmath>
 
+// Built following documentation: https://datatracker.ietf.org/doc/html/rfc8439
 class Chacha20 {
 
     // Number of double rounds to perform
@@ -133,27 +134,6 @@ class Chacha20 {
         return state_cpy;
     }
 
-public:
-    /*------------------------------------------------
-    Since chacha works on words both key and nonce are
-    separated into a vector of 32bit unsigned ints.
-    Words within vectors are to be ordered by big-endian.
-    The most significant word is vector's first element.
-    The least significant word is vector's last element.
-
-    key consists of 256bits (8*32)
-    block count consits of 32bits
-    nonce consists of 96bits (3*32)
-    ------------------------------------------------*/
-    Chacha20(std::vector<std::uint32_t> key, std::uint32_t block_count, std::vector<std::uint32_t> nonce) {
-        if(key.size() != 8) throw std::invalid_argument("Key must consist of exactly 8 words.\n");
-        if(nonce.size() != 3) throw std::invalid_argument("Nonce must consist of exactly 3 words.\n");
-
-        this->key = key;
-        this->block_count = block_count;
-        this->nonce = nonce;
-    }
-
     /*------------------------------------------------
     Initialize internal state with given key, nonce and block count.
 
@@ -207,6 +187,30 @@ public:
         internal_state[13] = little_endian(nonce[0]);
         internal_state[14] = little_endian(nonce[1]);
         internal_state[15] = little_endian(nonce[2]);
+    }
+
+public:
+    /*------------------------------------------------
+    Since chacha works on words both key and nonce are
+    separated into a vector of 32bit unsigned ints.
+    Words within vectors are to be ordered by big-endian.
+    The most significant word is vector's first element.
+    The least significant word is vector's last element.
+
+    key consists of 256bits (8*32)
+    block count consits of 32bits
+    nonce consists of 96bits (3*32)
+    ------------------------------------------------*/
+    Chacha20(std::vector<std::uint32_t> key, std::uint32_t block_count, std::vector<std::uint32_t> nonce) {
+        if(key.size() != 8) throw std::invalid_argument("Key must consist of exactly 8 words.\n");
+        if(nonce.size() != 3) throw std::invalid_argument("Nonce must consist of exactly 3 words.\n");
+
+        this->key = key;
+        this->block_count = block_count;
+        this->nonce = nonce;
+
+        // initialize state
+        init();
     }
 
     /*------------------------------------------------
