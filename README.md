@@ -14,5 +14,5 @@ The implementation emphasizes correctness, security, and performance, making it 
   * Safe and exception-free code
 
 ## Usage
-Simply download the `chacha20.hpp` file and include it like any other header. This will allow the construction of a `Chacha20` class with key, block count (counter) and nonce.
-Afterwards the simply call `encrypt()` function on whatever string is to be encoded or decoded. For an example refer to `test.cpp`.
+Simply download the `chacha20.hpp` file and include it like any other header. This will allow the construction of a `Chacha20` object with a user-provided key, block count and nonce.
+Afterwards simply call `encrypt()` function on whatever string is to be encoded or decoded. For an example refer to `test.cpp`.
