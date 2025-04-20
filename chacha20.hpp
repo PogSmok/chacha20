@@ -12,6 +12,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include <stdexcept>
 #include <vector>
 
+// Designed accordingly to: https://datatracker.ietf.org/doc/html/rfc8439
 class Chacha20 {
 
     // Number of double rounds to perform
@@ -26,11 +27,6 @@ class Chacha20 {
     const unsigned int INTERNAL_SIZE = 16;
     std::vector<std::uint32_t> internal_state;
 
-    // Chacha variables defined upon construction
-    std::vector<std::uint32_t> key;
-    std::uint32_t block_count;
-    std::vector<std::uint32_t> nonce;
-
     // Default constant words to be used for context initialization
     const std::vector<std::uint32_t> CONSTANT_WORDS {
         0x61707865, // "expa"
@@ -38,6 +34,11 @@ class Chacha20 {
         0x79622d32, // "2-by"
         0x6b206574  // "te k"
     };
+
+    // Chacha variables defined upon construction
+    std::vector<std::uint32_t> key;
+    std::uint32_t block_count;
+    std::vector<std::uint32_t> nonce;
 
     /*------------------------------------------------
     Computes the result of bitwise left-rotating the value of x by s positions.
