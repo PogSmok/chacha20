@@ -16,13 +16,10 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 class Chacha20 {
 
     // Number of double rounds to perform
-    static constexpr unsigned int ROUNDS = 10;
-
-    // Number of 32bit words in a key
+    static constexpr unsigned int ROUNDS = 10;  
     static constexpr unsigned int KEY_WORDS = 8;
-
-    // Number of 32bit words in an nonce
     static constexpr unsigned int NONCE_WORDS = 3;
+    static constexpr unsigned int STATE_SIZE = 16;
 
     // Internal state is made of 16 32-bit words
     // They are arranges as a 4x4 matrix as follows
@@ -30,7 +27,6 @@ class Chacha20 {
     // 4 5 6 7
     // 8 9 A B
     // C D E F
-    static constexpr unsigned int STATE_SIZE = 16;
     std::array<std::uint32_t, STATE_SIZE> internal_state;
 
     // Default constant words to be used for context initialization
@@ -54,7 +50,7 @@ class Chacha20 {
     @param s number of bits to rotate by
     @returns shifted value
     ------------------------------------------------*/
-    static std::uint32_t rotl(std::uint32_t x, std::uint32_t s) {
+    static inline std::uint32_t rotl(std::uint32_t x, std::uint32_t s) {
         return (x << s) | (x >> (32-s));
     }
 
@@ -64,7 +60,7 @@ class Chacha20 {
     @param x integer to be left rotated
     @returns little-endian value
     ------------------------------------------------*/
-    static std::uint32_t little_endian(std::uint32_t x) {
+    static inline std::uint32_t little_endian(std::uint32_t x) {
         return ((x & 0xFF000000) >> 24) |
                ((x & 0x00FF0000) >> 8)  |
                ((x & 0x0000FF00) << 8)  |
@@ -115,16 +111,18 @@ class Chacha20 {
     double_rounds on internal_state and then
     adds the outcome with internal_state before
     the operation.
+    Does not modify block_count in any way of the state
+    after the operation is applied.
 
     @param count block count to be used along key and nonce
     @return state after block operation
     ------------------------------------------------*/
-    std::array<std::uint32_t, STATE_SIZE> chacha20_block(std::uint32_t count) {
-        // modify the internal state to fit provided block_count
-        internal_state[12] = count;
-
+    std::array<std::uint32_t, STATE_SIZE> chacha20_block(std::uint32_t block_count) {
         std::array<std::uint32_t, STATE_SIZE> state_cpy = internal_state;
-        for(int i = 0; i < ROUNDS; i++) {
+        // modify the internal state to fit provided block_count
+        internal_state[12] = block_count;
+
+        for(unsigned i = 0; i < ROUNDS; i++) {
             double_round(state_cpy);
         }
 
@@ -132,9 +130,6 @@ class Chacha20 {
         for(size_t i = 0; i < STATE_SIZE; i++) {
             state_cpy[i] += internal_state[i];
         }
-
-        // return internal_state to it's initial state
-        internal_state[12] = block_count;
 
         return state_cpy;
     }
@@ -203,7 +198,7 @@ public:
     block count consits of 32bits
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
-    Chacha20(std::array<std::uint32_t, KEY_WORDS>& key, std::uint32_t block_count, std::array<std::uint32_t, NONCE_WORDS>& nonce):
+    Chacha20(const std::array<std::uint32_t, KEY_WORDS>& key, std::uint32_t block_count, const std::array<std::uint32_t, NONCE_WORDS>& nonce):
     key ( key), block_count ( block_count), nonce ( nonce) {
         init();
     }
@@ -221,25 +216,27 @@ public:
     @param message Message for encryption or decryption
     @return Encrypted/Decrypted message
     ------------------------------------------------*/
-    std::string encrypt(std::string& message) {
-        std::string encrypted;
-        std::array<std::uint32_t, STATE_SIZE> stream;
-        for(size_t i = 0, t = 0; i < message.length(); t++) {
-            if(i%64 == 0) {
-                stream = chacha20_block(block_count+i/64);
-                t = 0;
+    std::string encrypt(const std::string& message) {
+        std::string output;
+        output.resize(message.length()); // length of output always == length of input
+        size_t message_idx = 0;
+
+        std::uint32_t block_idx = block_count;
+
+        while(message_idx < message.length()) {
+            std::array<std::uint32_t, STATE_SIZE> stream = chacha20_block(block_idx++);
+            // Iteration is done by byte not word, thus STATE_SIZE*4 since STATE_SIZE measured in words
+            for(size_t stream_idx = 0; stream_idx < STATE_SIZE*4 && message_idx < message.length(); stream_idx++, message_idx++) {
+                /*  Apply XOR on each byte of the word after 4 full iterations of the for loop.
+                    stream[stream_idx/4] word has 4 bytes, so XOR must be applied 4 times for each word in stream.
+                    >>8*(i%4) shifts by 0 8 16 24 so that XOR is applied through all bytes of word.
+                    Word is XORed with a byte, thus only the least significant byte is XORed each time.
+                */
+                output[message_idx] = message[message_idx] ^ (stream[stream_idx/4]>>(8*(stream_idx%4)));
             }
-            // XOR stream with appropiate block of message
-            encrypted += message[i++] ^ (stream[t]);
-            if(i == message.length()) return encrypted;
-            encrypted += message[i++] ^ (stream[t]>>8);
-            if(i == message.length()) return encrypted;
-            encrypted += message[i++] ^ (stream[t]>>16);
-            if(i == message.length()) return encrypted;
-            encrypted += message[i++] ^ (stream[t]>>24);
         }
 
-        return encrypted;
+        return output;
     }
 };
 
