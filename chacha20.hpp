@@ -123,7 +123,7 @@ class Chacha20 {
         }
 
         // Matrix addition of state_cpy and internal_state
-        for(int i = 0; i < INTERNAL_SIZE; i++) {
+        for(size_t i = 0; i < INTERNAL_SIZE; i++) {
             state_cpy[i] += internal_state[i];
         }
 
@@ -200,7 +200,8 @@ public:
     block count consits of 32bits
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
-    Chacha20(std::vector<std::uint32_t> key, std::uint32_t block_count, std::vector<std::uint32_t> nonce) {
+    Chacha20(std::vector<std::uint32_t> key, std::uint32_t block_count, std::vector<std::uint32_t> nonce):
+    key ( key), block_count ( block_count), nonce ( nonce) {
         if(key.size() != 8) throw std::invalid_argument("Key must consist of exactly 8 words.\n");
         if(nonce.size() != 3) throw std::invalid_argument("Nonce must consist of exactly 3 words.\n");
 
@@ -227,7 +228,7 @@ public:
     std::string encrypt(std::string message) {
         std::string encrypted;
         std::vector<std::uint32_t> stream;
-        for(int i = 0, t = 0; i < message.length(); t++) {
+        for(size_t i = 0, t = 0; i < message.length(); t++) {
             if(i%64 == 0) {
                 stream = chacha20_block(block_count+i/64);
                 t = 0;
