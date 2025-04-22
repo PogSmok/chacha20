@@ -7,16 +7,22 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #ifndef __CHACHA20__
 #define __CHACHA20__
 
+#include <array>
 #include <cstdint>
 #include <cmath>
 #include <stdexcept>
-#include <vector>
 
 // Designed accordingly to: https://datatracker.ietf.org/doc/html/rfc8439
 class Chacha20 {
 
     // Number of double rounds to perform
-    const unsigned int ROUNDS = 10;
+    static constexpr unsigned int ROUNDS = 10;
+
+    // Number of 32bit words in a key
+    static constexpr unsigned int KEY_WORDS = 8;
+
+    // Number of 32bit words in an nonce
+    static constexpr unsigned int NONCE_WORDS = 3;
 
     // Internal state is made of 16 32-bit words
     // They are arranges as a 4x4 matrix as follows
@@ -24,11 +30,11 @@ class Chacha20 {
     // 4 5 6 7
     // 8 9 A B
     // C D E F
-    const unsigned int INTERNAL_SIZE = 16;
-    std::vector<std::uint32_t> internal_state;
+    static constexpr unsigned int STATE_SIZE = 16;
+    std::array<std::uint32_t, STATE_SIZE> internal_state;
 
     // Default constant words to be used for context initialization
-    const std::vector<std::uint32_t> CONSTANT_WORDS {
+    static constexpr std::array<std::uint32_t, 4> CONSTANT_WORDS = {
         0x61707865, // "expa"
         0x3320646e, // "nd 3"
         0x79622d32, // "2-by"
@@ -36,9 +42,9 @@ class Chacha20 {
     };
 
     // Chacha variables defined upon construction
-    std::vector<std::uint32_t> key;
+    std::array<std::uint32_t, KEY_WORDS> key;
     std::uint32_t block_count;
-    std::vector<std::uint32_t> nonce;
+    std::array<std::uint32_t, NONCE_WORDS> nonce;
 
     /*------------------------------------------------
     Computes the result of bitwise left-rotating the value of x by s positions.
@@ -48,7 +54,7 @@ class Chacha20 {
     @param s number of bits to rotate by
     @returns shifted value
     ------------------------------------------------*/
-    std::uint32_t rotl(std::uint32_t x, std::uint32_t s) {
+    static std::uint32_t rotl(std::uint32_t x, std::uint32_t s) {
         return (x << s) | (x >> (32-s));
     }
 
@@ -58,7 +64,7 @@ class Chacha20 {
     @param x integer to be left rotated
     @returns little-endian value
     ------------------------------------------------*/
-    std::uint32_t little_endian(std::uint32_t x) {
+    static std::uint32_t little_endian(std::uint32_t x) {
         return ((x & 0xFF000000) >> 24) |
                ((x & 0x00FF0000) >> 8)  |
                ((x & 0x0000FF00) << 8)  |
@@ -75,7 +81,7 @@ class Chacha20 {
     @param c word c in chacha quarter round algorithm
     @param d word d in chacha quarter round algorithm
     ------------------------------------------------*/
-    void quarter_round(std::uint32_t& a, std::uint32_t& b, std::uint32_t& c, std::uint32_t& d) {
+    static void quarter_round(std::uint32_t& a, std::uint32_t& b, std::uint32_t& c, std::uint32_t& d) {
         a += b; d ^= a; d = rotl(d, 16);
         c += d; b ^= c; b = rotl(b, 12);
         a += b; d ^= a; d = rotl(d, 8);
@@ -90,7 +96,7 @@ class Chacha20 {
 
     @param state_cpy copy of internal_state to perform rounds on
     ------------------------------------------------*/
-    void double_round(std::vector<std::uint32_t>& state_cpy) {
+    static void double_round(std::array<std::uint32_t, STATE_SIZE>& state_cpy) {
         // column rounds
         quarter_round(state_cpy[0], state_cpy[4], state_cpy[8], state_cpy[12]);
         quarter_round(state_cpy[1], state_cpy[5], state_cpy[9], state_cpy[13]);
@@ -113,17 +119,17 @@ class Chacha20 {
     @param count block count to be used along key and nonce
     @return state after block operation
     ------------------------------------------------*/
-    std::vector<std::uint32_t> chacha20_block(std::uint32_t count) {
+    std::array<std::uint32_t, STATE_SIZE> chacha20_block(std::uint32_t count) {
         // modify the internal state to fit provided block_count
         internal_state[12] = count;
 
-        std::vector<std::uint32_t> state_cpy = internal_state;
+        std::array<std::uint32_t, STATE_SIZE> state_cpy = internal_state;
         for(int i = 0; i < ROUNDS; i++) {
             double_round(state_cpy);
         }
 
         // Matrix addition of state_cpy and internal_state
-        for(size_t i = 0; i < INTERNAL_SIZE; i++) {
+        for(size_t i = 0; i < STATE_SIZE; i++) {
             state_cpy[i] += internal_state[i];
         }
 
@@ -160,9 +166,6 @@ class Chacha20 {
     c=constant k=key b=blockcount n=nonce
     ------------------------------------------------*/
     void init() {
-        // initialize internal state vector
-        internal_state = std::vector<std::uint32_t>(INTERNAL_SIZE);
-
         // Assign constant words
         internal_state[0] = CONSTANT_WORDS[0];
         internal_state[1] = CONSTANT_WORDS[1];
@@ -191,20 +194,17 @@ class Chacha20 {
 public:
     /*------------------------------------------------
     Since chacha works on words both key and nonce are
-    separated into a vector of 32bit unsigned ints.
-    Words within vectors are to be ordered by big-endian.
-    The most significant word is vector's first element.
-    The least significant word is vector's last element.
+    separated into an array of 32bit unsigned ints.
+    Words within arrays are to be ordered by big-endian.
+    The most significant word is array's first element.
+    The least significant word is array's last element.
 
     key consists of 256bits (8*32)
     block count consits of 32bits
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
-    Chacha20(std::vector<std::uint32_t>& key, std::uint32_t block_count, std::vector<std::uint32_t>& nonce):
+    Chacha20(std::array<std::uint32_t, KEY_WORDS>& key, std::uint32_t block_count, std::array<std::uint32_t, NONCE_WORDS>& nonce):
     key ( key), block_count ( block_count), nonce ( nonce) {
-        if(key.size() != 8) throw std::invalid_argument("Key must consist of exactly 8 words.\n");
-        if(nonce.size() != 3) throw std::invalid_argument("Nonce must consist of exactly 3 words.\n");
-
         init();
     }
 
@@ -223,7 +223,7 @@ public:
     ------------------------------------------------*/
     std::string encrypt(std::string& message) {
         std::string encrypted;
-        std::vector<std::uint32_t> stream;
+        std::array<std::uint32_t, STATE_SIZE> stream;
         for(size_t i = 0, t = 0; i < message.length(); t++) {
             if(i%64 == 0) {
                 stream = chacha20_block(block_count+i/64);
