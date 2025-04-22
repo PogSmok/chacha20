@@ -1,5 +1,7 @@
 #include "chacha20.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iomanip>
@@ -7,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+
 
 /// It is assumed all test cases are valid and thus no safety checks are implemented for the contents of tests themselves
 
@@ -45,10 +48,14 @@ std::string str_to_result(std::string str) {
 }
 
 void test_case(std::string key, std::string block_count, std::string nonce, std::string message, std::string result) {
-    auto key_v = hex_str_to_vec(key);
+    std::array<std::uint32_t, 8> key_arr;
+    std::copy_n(hex_str_to_vec(key).begin(), 8, key_arr.begin());
+
     auto block_v = str_to_block(block_count);
-    auto nonce_v = hex_str_to_vec(nonce);
-    Chacha20 cipher = Chacha20(key_v, block_v, nonce_v);
+
+    std::array<std::uint32_t, 3> nonce_arr;
+    std::copy_n(hex_str_to_vec(nonce).begin(), 3, nonce_arr.begin());
+    Chacha20 cipher = Chacha20(key_arr, block_v, nonce_arr);
     message = hex_str_to_str(message);
     std::string coded = cipher.encrypt(message);
     coded = str_to_result(coded);
