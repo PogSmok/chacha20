@@ -225,7 +225,7 @@ public:
 
         while(message_idx < message.length()) {
             std::array<std::uint32_t, STATE_SIZE> stream = chacha20_block(block_idx++);
-            // Iteration is done by byte not word, thus STATE_SIZE*4 since STATE_SIZE measured in words
+            // Iteration is done by byte not word, thus STATE_SIZE*4 since STATE_SIZE is measured in words
             for(size_t stream_idx = 0; stream_idx < STATE_SIZE*4 && message_idx < message.length(); stream_idx++, message_idx++) {
                 /*  Apply XOR on each byte of the word after 4 full iterations of the for loop.
                     stream[stream_idx/4] word has 4 bytes, so XOR must be applied 4 times for each word in stream.
