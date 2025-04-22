@@ -200,17 +200,10 @@ public:
     block count consits of 32bits
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
-    Chacha20(std::vector<std::uint32_t> key, std::uint32_t block_count, std::vector<std::uint32_t> nonce):
-        key ( key),
-        block_count ( block_count),
-        nonce ( nonce) 
-    {
+    Chacha20(std::vector<std::uint32_t>& key, std::uint32_t block_count, std::vector<std::uint32_t>& nonce):
+    key ( key), block_count ( block_count), nonce ( nonce) {
         if(key.size() != 8) throw std::invalid_argument("Key must consist of exactly 8 words.\n");
         if(nonce.size() != 3) throw std::invalid_argument("Nonce must consist of exactly 3 words.\n");
-
-        this->key = key;
-        this->block_count = block_count;
-        this->nonce = nonce;
 
         init();
     }
@@ -228,7 +221,7 @@ public:
     @param message Message for encryption or decryption
     @return Encrypted/Decrypted message
     ------------------------------------------------*/
-    std::string encrypt(std::string message) {
+    std::string encrypt(std::string& message) {
         std::string encrypted;
         std::vector<std::uint32_t> stream;
         for(size_t i = 0, t = 0; i < message.length(); t++) {
