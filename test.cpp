@@ -45,14 +45,18 @@ std::string str_to_result(std::string str) {
 }
 
 void test_case(std::string key, std::string block_count, std::string nonce, std::string message, std::string result) {
-    Chacha20 cipher = Chacha20(hex_str_to_vec(key), str_to_block(block_count), hex_str_to_vec(nonce));
-    std::string coded = cipher.encrypt(hex_str_to_str(message));
+    auto key_v = hex_str_to_vec(key);
+    auto block_v = str_to_block(block_count);
+    auto nonce_v = hex_str_to_vec(nonce);
+    Chacha20 cipher = Chacha20(key_v, block_v, nonce_v);
+    message = hex_str_to_str(message);
+    std::string coded = cipher.encrypt(message);
     coded = str_to_result(coded);
     assert(coded == result);
 }
 
 int main(void) {
-    // Testcases have been created by https://datatracker.ietf.org/doc/html/rfc843   
+    // Testcase have been created by https://datatracker.ietf.org/doc/html/rfc843   
 
     // Test Vector #0
     test_case("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", "1", "000000000000004a00000000",
