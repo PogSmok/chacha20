@@ -201,7 +201,10 @@ public:
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
     Chacha20(std::vector<std::uint32_t> key, std::uint32_t block_count, std::vector<std::uint32_t> nonce):
-    key ( key), block_count ( block_count), nonce ( nonce) {
+        key ( key),
+        block_count ( block_count),
+        nonce ( nonce) 
+    {
         if(key.size() != 8) throw std::invalid_argument("Key must consist of exactly 8 words.\n");
         if(nonce.size() != 3) throw std::invalid_argument("Nonce must consist of exactly 3 words.\n");
 
