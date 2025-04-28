@@ -54,7 +54,7 @@ class Chacha20 {
     static inline std::uint32_t rotl(std::uint32_t x, std::uint32_t s) {
         return (x << s) | (x >> (32-s));
     }
-
+    
     /*------------------------------------------------
     Computes the little-endian notation of a word x
 
@@ -69,9 +69,7 @@ class Chacha20 {
     }
 
     /*------------------------------------------------
-    ChaCha20 quarter round function
-    Two quarter rounds make a full round
-    Four quarter rounds make a double round
+    ChaCha20 double round function
 
     @param a word a in chacha quarter round algorithm
     @param b word b in chacha quarter round algorithm
@@ -118,9 +116,9 @@ class Chacha20 {
     @param count block count to be used along key and nonce
     @return state after block operation
     ------------------------------------------------*/
-    std::array<std::uint32_t, STATE_SIZE> chacha20_block(std::uint32_t block_count) {
+    std::array<std::uint32_t, STATE_SIZE> chacha20_block() {
         // modify the internal state to fit provided block_count
-        internal_state[12] = block_count;
+        internal_state[12]++;
         std::array<std::uint32_t, STATE_SIZE> state_cpy = internal_state;
 
         for(unsigned i = 0; i < ROUNDS; i++) {
@@ -213,7 +211,7 @@ public:
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
     explicit Chacha20(const std::array<std::uint32_t, KEY_WORDS>& key, std::uint32_t block_count, const std::array<std::uint32_t, NONCE_WORDS>& nonce):
-    key ( key), block_count ( block_count), nonce ( nonce) {
+    key ( key), block_count ( block_count-1), nonce ( nonce) {
         init();
     }
 
@@ -244,10 +242,8 @@ public:
         std::vector<std::uint8_t> output(message.size()); // length of output always == length of input
         size_t message_idx = 0;
 
-        std::uint32_t block_idx = block_count;
-
         while(message_idx < message.size()) {
-            std::array<std::uint32_t, STATE_SIZE> stream = chacha20_block(block_idx++);
+            std::array<std::uint32_t, STATE_SIZE> stream = chacha20_block();
             // Iteration is done by byte not word, thus STATE_SIZE*4 since STATE_SIZE is measured in words
             for(size_t stream_idx = 0; stream_idx < STATE_SIZE*4 && message_idx < message.size(); stream_idx++, message_idx++) {
                 /*  Apply XOR on each byte of the word after 4 full iterations of the for loop.
