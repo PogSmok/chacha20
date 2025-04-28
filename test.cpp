@@ -1,3 +1,5 @@
+// Pick whichever header you like
+//#include "chacha20_AVX.hpp"
 #include "chacha20.hpp"
 
 #include <algorithm>
