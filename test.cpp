@@ -81,7 +81,7 @@ void test_case(std::string key, std::string block_count, std::string nonce, std:
 }
 
 int main(void) {
-    // Testcase have been created by https://datatracker.ietf.org/doc/html/rfc843
+    // Testcase have been created by https://datatracker.ietf.org/doc/html/rfc8439
 
     // Test Vector #0
     test_case("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", "1", "000000000000004a00000000",
