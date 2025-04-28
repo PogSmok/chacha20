@@ -11,6 +11,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #include <cstdint>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 
 // Designed accordingly to: https://datatracker.ietf.org/doc/html/rfc8439
 class Chacha20 {
@@ -118,9 +119,9 @@ class Chacha20 {
     @return state after block operation
     ------------------------------------------------*/
     std::array<std::uint32_t, STATE_SIZE> chacha20_block(std::uint32_t block_count) {
-        std::array<std::uint32_t, STATE_SIZE> state_cpy = internal_state;
         // modify the internal state to fit provided block_count
         internal_state[12] = block_count;
+        std::array<std::uint32_t, STATE_SIZE> state_cpy = internal_state;
 
         for(unsigned i = 0; i < ROUNDS; i++) {
             double_round(state_cpy);
@@ -216,17 +217,17 @@ public:
     @param message Message for encryption or decryption
     @return Encrypted/Decrypted message
     ------------------------------------------------*/
-    std::string encrypt(const std::string& message) {
-        std::string output;
-        output.resize(message.length()); // length of output always == length of input
+    std::vector<std::uint8_t> encrypt(const std::vector<std::uint8_t>& message) {
+        std::vector<std::uint8_t> output;
+        output.resize(message.size()); // length of output always == length of input
         size_t message_idx = 0;
 
         std::uint32_t block_idx = block_count;
 
-        while(message_idx < message.length()) {
+        while(message_idx < message.size()) {
             std::array<std::uint32_t, STATE_SIZE> stream = chacha20_block(block_idx++);
             // Iteration is done by byte not word, thus STATE_SIZE*4 since STATE_SIZE is measured in words
-            for(size_t stream_idx = 0; stream_idx < STATE_SIZE*4 && message_idx < message.length(); stream_idx++, message_idx++) {
+            for(size_t stream_idx = 0; stream_idx < STATE_SIZE*4 && message_idx < message.size(); stream_idx++, message_idx++) {
                 /*  Apply XOR on each byte of the word after 4 full iterations of the for loop.
                     stream[stream_idx/4] word has 4 bytes, so XOR must be applied 4 times for each word in stream.
                     >>8*(i%4) shifts by 0 8 16 24 so that XOR is applied through all bytes of word.
