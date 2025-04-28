@@ -187,6 +187,19 @@ class Chacha20 {
         internal_state[15] = little_endian(nonce[2]);
     }
 
+    /*------------------------------------------------
+    Sets all bits of arr to 0 in a cryptographically safe way.
+
+    @param arr Array to be zeroed
+    ------------------------------------------------*/
+    template<typename T, size_t N>
+    void secure_zero(std::array<T, N>& arr) {
+        volatile T* p = reinterpret_cast<volatile T*>(arr.data());
+        for (size_t i = 0; i < N; ++i) {
+            p[i] = 0;
+        }
+    }
+
 public:
     /*------------------------------------------------
     Since chacha works on words both key and nonce are
@@ -199,9 +212,19 @@ public:
     block count consits of 32bits
     nonce consists of 96bits (3*32)
     ------------------------------------------------*/
-    Chacha20(const std::array<std::uint32_t, KEY_WORDS>& key, std::uint32_t block_count, const std::array<std::uint32_t, NONCE_WORDS>& nonce):
+    explicit Chacha20(const std::array<std::uint32_t, KEY_WORDS>& key, std::uint32_t block_count, const std::array<std::uint32_t, NONCE_WORDS>& nonce):
     key ( key), block_count ( block_count), nonce ( nonce) {
         init();
+    }
+
+    /*------------------------------------------------
+    Upon destruction 0 all sensetive data
+    ------------------------------------------------*/
+    ~Chacha20() {
+        secure_zero(key);
+        block_count = 0;
+        secure_zero(nonce);
+        
     }
 
     /*------------------------------------------------
@@ -218,8 +241,7 @@ public:
     @return Encrypted/Decrypted message
     ------------------------------------------------*/
     std::vector<std::uint8_t> encrypt(const std::vector<std::uint8_t>& message) {
-        std::vector<std::uint8_t> output;
-        output.resize(message.size()); // length of output always == length of input
+        std::vector<std::uint8_t> output(message.size()); // length of output always == length of input
         size_t message_idx = 0;
 
         std::uint32_t block_idx = block_count;
