@@ -32,7 +32,7 @@ class Chacha20 {
     // C D E F
     // It is stored by rows and each row is stored twice for optimization used in double rounds
     // The only difference is block_count which is 1 greater in the second block
-    std::array<__m256i, ROW_SIZE> internal_state;
+    std::array<__m256i, ROW_SIZE> internal_state alignas(32);
 
     // Default constant words to be used for context initialization
     static constexpr std::array<std::uint32_t, 4> CONSTANT_WORDS = {
@@ -55,7 +55,7 @@ class Chacha20 {
     @param s number of bits to rotate by
     @returns shifted value
     ------------------------------------------------*/
-    static __m256i rotl_avx2(__m256i x, std::uint32_t s) {
+    static inline __m256i rotl_avx2(__m256i x, std::uint32_t s) {
         return _mm256_or_si256(_mm256_slli_epi32(x, s), _mm256_srli_epi32(x, 32 - s));
     }
     
@@ -67,7 +67,7 @@ class Chacha20 {
     @param s number of bits to rotate by
     @returns shifted value
     ------------------------------------------------*/
-    static __m256i rotr_avx2(__m256i x, std::uint32_t s) {
+    static inline __m256i rotr_avx2(__m256i x, std::uint32_t s) {
         return _mm256_or_si256(_mm256_slli_epi32(x, 32-s), _mm256_srli_epi32(x, s));
     }
 
@@ -153,8 +153,9 @@ class Chacha20 {
         // modify the internal state to fit provided block_count
         // and increment block_count by 1 in second calculated state
         internal_state[3] = _mm256_add_epi32(internal_state[3], _mm256_set_epi32(2, 0, 0, 0, 2, 0, 0, 0));
-        std::array<__m256i, ROW_SIZE> state_cpy = internal_state; 
+        std::array<__m256i, ROW_SIZE> state_cpy alignas(32) = internal_state; 
 
+        #pragma vector always
         for(unsigned i = 0; i < ROUNDS; i++) {
             double_round(state_cpy);
         }
@@ -267,11 +268,12 @@ public:
         std::vector<std::uint8_t> output(message.size()); // length of output always == length of input
         size_t message_idx = 0;
 
+        #pragma vector always
         while(message_idx < message.size()) {
             std::array<__m256i, ROW_SIZE> stream = chacha20_block();
             // translate stream into a friendly type
             // elements are in reverse order
-            std::array<std::array<std::uint32_t, ROW_SIZE*2>, 4> stream_arr;
+            std::array<std::array<std::uint32_t, ROW_SIZE*2>, 4> stream_arr alignas(32);
             _mm256_storeu_si256(reinterpret_cast<__m256i*>(&stream_arr[0]), stream[0]);
             _mm256_storeu_si256(reinterpret_cast<__m256i*>(&stream_arr[1]), stream[1]);
             _mm256_storeu_si256(reinterpret_cast<__m256i*>(&stream_arr[2]), stream[2]);
@@ -279,6 +281,7 @@ public:
 
             // Iteration is done by byte not word, thus STATE_SIZE*4 since STATE_SIZE is measured in words
             // Since stream has 2 states, we multiply it further by 2 STATE_SIZE*4*2 = STATE_SIZE*8
+            #pragma vector always
             for(size_t stream_idx = 0, row = 0, corr = 0, arr_idx = 0;
                 stream_idx < STATE_SIZE*8 && message_idx < message.size();
                 stream_idx++, message_idx++, arr_idx++
