@@ -287,9 +287,8 @@ public:
                 stream_idx++, message_idx++, arr_idx++
             ) {
                 /*  Apply XOR on each byte of the word after 4 full iterations of the for loop.
-                    stream[stream_idx/4] word has 4 bytes, so XOR must be applied 4 times for each word in stream.
-                    >>8*(i%4) shifts by 0 8 16 24 so that XOR is applied through all bytes of word.
                     Word is XORed with a byte, thus only the least significant byte is XORed each time.
+                    Since stream_arr is in reverse order, we iterate from the back
                 */     
                 if(arr_idx/4 == ROW_SIZE) row++, arr_idx = 0;      
                 if(row == ROW_SIZE) corr = ROW_SIZE, row = 0; 
