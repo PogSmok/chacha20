@@ -25,14 +25,15 @@ class Chacha20 {
     static constexpr unsigned int ROW_SIZE = 4;
 
     // Internal state is made of 16 32-bit words
-    // They are arranges as a 4x4 matrix as follows
-    // 0 1 2 3
-    // 4 5 6 7
-    // 8 9 A B
-    // C D E F
+    // They are arranged as a 2 4x4 matrix as follows
+    // 0 1 2 3 0 1 2 3
+    // 4 5 6 7 4 5 6 7
+    // 8 9 A B 8 9 A B
+    // C D E F C D E F
     // It is stored by rows and each row is stored twice for optimization used in double rounds
     // The only difference is block_count which is 1 greater in the second block
-    std::array<__m256i, ROW_SIZE> internal_state alignas(32);
+    // Using C style array, since std::array doesn't support aligment
+    __m256i internal_state[ROW_SIZE] alignas(32);
 
     // Default constant words to be used for context initialization
     static constexpr std::array<std::uint32_t, 4> CONSTANT_WORDS = {
@@ -92,7 +93,7 @@ class Chacha20 {
     @param rows array of 256 rows where first 128 bits will be
            first for chacha20 block and last 128 second chacha20 block
     ------------------------------------------------*/
-    static void double_round(std::array<__m256i, ROW_SIZE>& state_cpy) {
+    static void double_round(__m256i state_cpy[ROW_SIZE]) {
         // Calculate columns
         state_cpy[0] = _mm256_add_epi32(state_cpy[0], state_cpy[1]);
         state_cpy[3] = _mm256_xor_si256(state_cpy[3], state_cpy[0]);
@@ -147,25 +148,25 @@ class Chacha20 {
     after the operation is applied.
 
     @param count block count to be used along key and nonce
-    @return 2 next states after block operation
+    @param output array to hold the result
     ------------------------------------------------*/
-    std::array<__m256i, ROW_SIZE> chacha20_block() {
+    void chacha20_block(__m256i output[ROW_SIZE]) {
         // modify the internal state to fit provided block_count
         // and increment block_count by 1 in second calculated state
         internal_state[3] = _mm256_add_epi32(internal_state[3], _mm256_set_epi32(2, 0, 0, 0, 2, 0, 0, 0));
-        std::array<__m256i, ROW_SIZE> state_cpy alignas(32) = internal_state; 
+        for (size_t i = 0; i < ROW_SIZE; i++) {
+            output[i] = internal_state[i];
+        }
 
         #pragma vector always
         for(unsigned i = 0; i < ROUNDS; i++) {
-            double_round(state_cpy);
+            double_round(output);
         }
 
-        // Matrix addition of state_cpy and internal_state for both states at once
+        // Matrix addition of output and internal_state for both states at once
         for(size_t i = 0; i < ROW_SIZE; i++) {
-            state_cpy[i] = _mm256_add_epi32(state_cpy[i], internal_state[i]);
+            output[i] = _mm256_add_epi32(output[i], internal_state[i]);
         }
-
-        return state_cpy;
     }
 
     /*------------------------------------------------
@@ -270,7 +271,8 @@ public:
 
         #pragma vector always
         while(message_idx < message.size()) {
-            std::array<__m256i, ROW_SIZE> stream = chacha20_block();
+            __m256i stream[ROW_SIZE] alignas(32);
+            chacha20_block(stream);
             // translate stream into a friendly type
             // elements are in reverse order
             std::array<std::array<std::uint32_t, ROW_SIZE*2>, 4> stream_arr alignas(32);
