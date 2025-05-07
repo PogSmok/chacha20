@@ -16,7 +16,10 @@ The implementation emphasizes correctness, security, and performance, making it 
 
 ## Usage
 Simply download the `chacha20.hpp` or `chacha20_AVX.hpp` if your machine supports AVX and include it like any other header. This will allow the construction of a `Chacha20` object with a user-provided key, block count and nonce.
-Afterwards simply call `encrypt()` function on whatever string is to be encoded or decoded. For an example refer to `test.cpp`. To run program using AVX instructions compile with 
+Afterwards simply call `encrypt()` function on whatever string is to be encoded or decoded. For an example refer to `test.cpp`. 
+
+# IMPORTANT!
+To run program using AVX instructions compile with 
 ```
 g++ -mavx -march=native ...
 ```
